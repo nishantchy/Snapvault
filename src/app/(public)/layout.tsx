@@ -15,11 +15,7 @@ export default function HomeLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <Navbar />
-        {children}
-        <SimpleFooter />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

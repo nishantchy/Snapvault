@@ -1,14 +1,124 @@
+"use client";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Brain, Cloud, Lock, Zap } from "lucide-react";
+  ChevronDown,
+  ChevronRight,
+  Brain,
+  Cloud,
+  Lock,
+  Zap,
+  Folder,
+  Search,
+} from "lucide-react";
+
 import Link from "next/link";
+import { Button } from "../ui/button";
+interface Feature {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  subFeatures?: Feature[];
+}
+const features: Feature[] = [
+  {
+    icon: Brain,
+    title: "Smart Organization",
+    description: "AI-powered system for effortless memory categorization",
+    subFeatures: [
+      {
+        icon: Folder,
+        title: "Auto-Tagging",
+        description: "Automatically tag memories based on content and context",
+      },
+      {
+        icon: Search,
+        title: "Intelligent Search",
+        description: "Find memories quickly with natural language search",
+      },
+    ],
+  },
+  {
+    icon: Cloud,
+    title: "Unlimited Cloud Storage",
+    description: "Store all your memories securely in the cloud",
+  },
+  {
+    icon: Lock,
+    title: "Bank-Level Security",
+    description: "Keep your memories safe with advanced encryption",
+  },
+  {
+    icon: Zap,
+    title: "Lightning-Fast Access",
+    description: "Instantly retrieve memories from any device, anywhere",
+  },
+];
+function FeatureItem({
+  feature,
+  isLast,
+}: {
+  feature: Feature;
+  isLast: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      {/* <div
+        className={`border-l-2 border-gray-300 ${
+          isLast ? "h-8" : "h-full"
+        } absolute left-4 top-0`}
+      /> */}
+      <div className="relative pl-10 pb-4">
+        <div className="bg-white p-4 rounded-lg shadow-md">
+          <div className="flex items-center mb-2">
+            <feature.icon className="mr-2 h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">{feature.title}</h3>
+            {feature.subFeatures && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto"
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                {isOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+                <span className="sr-only">
+                  {isOpen ? "Collapse" : "Expand"}
+                </span>
+              </Button>
+            )}
+          </div>
+          <p className="text-gray-600">{feature.description}</p>
+        </div>
+        <AnimatePresence>
+          {isOpen && feature.subFeatures && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-2"
+            >
+              {feature.subFeatures.map((subFeature, index) => (
+                <FeatureItem
+                  key={index}
+                  feature={subFeature}
+                  isLast={index === feature.subFeatures!.length - 1}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
 
 export default function AboutProduct() {
   return (
@@ -35,7 +145,7 @@ export default function AboutProduct() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 items-center">
+        <div className="flex flex-col md:flex-row justify-between gap-2 items-center">
           <div>
             <Image
               src="/placeholder.svg?height=400&width=600"
@@ -45,63 +155,19 @@ export default function AboutProduct() {
               className="rounded-lg shadow-lg"
             />
           </div>
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Brain className="mr-2 h-5 w-5 text-primary" />
-                  Smart Organization
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Our AI-powered system automatically categorizes and tags your
-                  memories for easy retrieval.
-                </CardDescription>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Cloud className="mr-2 h-5 w-5 text-primary" />
-                  Unlimited Cloud Storage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Never worry about running out of space. Store all your
-                  precious memories in one secure location.
-                </CardDescription>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Lock className="mr-2 h-5 w-5 text-primary" />
-                  Bank-Level Security
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Your memories are precious. We use state-of-the-art encryption
-                  to keep them safe and private.
-                </CardDescription>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Zap className="mr-2 h-5 w-5 text-primary" />
-                  Lightning-Fast Access
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Instantly access any memory from any device, anytime, anywhere
-                  in the world.
-                </CardDescription>
-              </CardContent>
-            </Card>
+          <div className="container mx-auto px-4">
+            {/* <h2 className="text-3xl font-bold mb-8 text-center">
+              Our Features
+            </h2> */}
+            <div className=" mx-auto">
+              {features.map((feature, index) => (
+                <FeatureItem
+                  key={index}
+                  feature={feature}
+                  isLast={index === features.length - 1}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
