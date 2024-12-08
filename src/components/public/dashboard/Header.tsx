@@ -1,13 +1,35 @@
-import { Bell, Search, User } from "lucide-react";
+"use client";
+import { Bell, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { UserDropdown } from "./UserDropdown";
+
+export type LocalUserType = {
+  id: string;
+  email: string;
+  name: string;
+  image: string;
+  phone: string;
+};
 
 export default function Header() {
+  const [user, setUser] = useState<LocalUserType | null>();
+
+  useEffect(() => {
+    const storedUserData = localStorage.getItem("client");
+    if (storedUserData) {
+      const parsedUserData = JSON.parse(storedUserData);
+      setUser(parsedUserData);
+    }
+  }, []);
+
   return (
     <header className="bg-white shadow">
-      <div className="container mx-auto  py-4 flex items-center justify-between">
+      <div className="container mx-auto py-4 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <div className="">
+          <div>
             <svg
               width="208"
               height="28"
@@ -31,12 +53,16 @@ export default function Header() {
           </div>
         </div>
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
+          <Button variant="ghost" className="bg-slate-200">
+            <Bell className="h-7 w-7" />
           </Button>
-          <Button variant="ghost" size="icon">
-            <User className="h-5 w-5" />
-          </Button>
+          {user ? (
+            <UserDropdown user={user} />
+          ) : (
+            <Button>
+              <Link href="/accounts/login">Login</Link>
+            </Button>
+          )}
         </div>
       </div>
     </header>

@@ -10,7 +10,7 @@ export default function Home() {
       id: 1,
       title: "Summer Beach Trip",
       description: "An amazing day at the beach with friends",
-      imageUrl: "/placeholder.svg?height=300&width=400",
+      imageUrl: "/beach.jpg",
       author: "John Doe",
       date: "2023-07-15",
       likes: 24,
@@ -20,13 +20,22 @@ export default function Home() {
       id: 2,
       title: "Mountain Hiking Adventure",
       description: "Conquered the peak after a challenging hike",
-      imageUrl: "/placeholder.svg?height=300&width=400",
+      imageUrl: "/trekking.jpeg",
       author: "Jane Smith",
       date: "2023-07-10",
       likes: 18,
       comments: 3,
     },
-    // Add more memory objects as needed
+    {
+      id: 3,
+      title: "Pokhara the land of Vibes",
+      description: "Enjoyed the best peaceful lake",
+      imageUrl: "/pokhara.jpeg",
+      author: "Nishant Chaudhary",
+      date: "2023-07-10",
+      likes: 28,
+      comments: 2,
+    },
   ];
 
   return (

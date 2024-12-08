@@ -95,7 +95,7 @@ const LoginPage = () => {
       }
 
       toast.success("Login successful!");
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
     } catch (error) {
       console.error("Login error:", error);
