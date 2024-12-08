@@ -14,19 +14,13 @@ const plans = [
     name: "Free",
     price: "$0",
     description: "For individuals just getting started",
-    features: ["Basic features", "1 user", "100 MB storage", "Email support"],
+    features: ["Basic features", "50 credits on signup", "100 MB storage"],
   },
   {
     name: "Basic",
     price: "$5",
     description: "For small teams or projects",
-    features: [
-      "All Free features",
-      "5 users",
-      "1 GB storage",
-      "Priority email support",
-      "API access",
-    ],
+    features: ["All Free features", "1000 credits", "1 GB storage"],
   },
   {
     name: "Pro",
@@ -34,11 +28,9 @@ const plans = [
     description: "For businesses and larger teams",
     features: [
       "All Basic features",
-      "Unlimited users",
+      "Unlimited credits",
       "10 GB storage",
       "24/7 phone & email support",
-      "Advanced analytics",
-      "Custom integrations",
     ],
   },
 ];
