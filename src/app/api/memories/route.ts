@@ -13,7 +13,7 @@ cloudinary.config({
 async function uploadImage(base64Image: string) {
   try {
     const result = await cloudinary.uploader.upload(base64Image, {
-      folder: "products",
+      folder: "memories",
       resource_type: "auto",
     });
     return result.secure_url;
@@ -22,6 +22,7 @@ async function uploadImage(base64Image: string) {
     throw error;
   }
 }
+
 export const POST = async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
@@ -89,15 +90,20 @@ export const POST = async (request: Request) => {
           }
         );
       }
+    }
 
-      let imageUrls: string[] = [];
+    // Ensure imageUrls is initialized as a string array
+    let imageUrls: string[] = [];
+
+    // Handle image uploads
+    if (body.images && Array.isArray(body.images) && body.images.length > 0) {
       try {
-        if (body.images && body.images.length > 0) {
-          for (const imageBase64 of body.images) {
-            const imageUrl = await uploadImage(imageBase64);
-            imageUrls.push(imageUrl);
-          }
-        }
+        // Use map to process images as strings
+        const uploadPromises = body.images.map((imageBase64: string) =>
+          uploadImage(imageBase64)
+        );
+        // Wait for all uploads and assign the result to imageUrls
+        imageUrls = await Promise.all(uploadPromises);
       } catch (error: any) {
         return new NextResponse(
           JSON.stringify({
@@ -109,22 +115,23 @@ export const POST = async (request: Request) => {
           }
         );
       }
-
-      const newMemory = await prisma.memories.create({
-        data: {
-          title: body.title,
-          content: body.content,
-          images: imageUrls.length > 0 ? imageUrls.join(",") : null,
-          userId: userId,
-          memoryTypeId: memoryTypeId,
-        },
-      });
-
-      return new NextResponse(JSON.stringify(newMemory), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
     }
+
+    const newMemory = await prisma.memories.create({
+      data: {
+        title: body.title,
+        content: body.content,
+        images: imageUrls,
+        userId: userId,
+        memoryTypeId: memoryTypeId,
+        isPublic: body.isPublic || false,
+      },
+    });
+
+    return new NextResponse(JSON.stringify(newMemory), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error: any) {
     console.error("Error creating memory:", error);
 
@@ -143,11 +150,12 @@ export const POST = async (request: Request) => {
   }
 };
 
-export const GET = async (req: Request, res: Response) => {
+export const GET = async (req: Request) => {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
     const memoryTypeId = searchParams.get("memoryTypeId");
+
     if (!userId) {
       return new NextResponse(
         JSON.stringify({ message: "User ID is required" }),
@@ -157,6 +165,7 @@ export const GET = async (req: Request, res: Response) => {
         }
       );
     }
+
     if (!memoryTypeId) {
       return new NextResponse(
         JSON.stringify({ message: "Memory Type ID is required" }),
@@ -166,21 +175,25 @@ export const GET = async (req: Request, res: Response) => {
         }
       );
     }
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
     });
+
     if (!user) {
       return new NextResponse(JSON.stringify({ message: "User not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
+
     const memoryType = await prisma.memory_types.findUnique({
       where: {
         id: memoryTypeId,
         userId: userId,
       },
     });
+
     if (!memoryType) {
       return new NextResponse(
         JSON.stringify({ message: "Memory Type not found" }),
@@ -192,7 +205,10 @@ export const GET = async (req: Request, res: Response) => {
     }
 
     const memories = await prisma.memories.findMany({
-      where: { memoryTypeId },
+      where: {
+        memoryTypeId,
+        userId, // Ensure memories belong to the user
+      },
       orderBy: {
         createdAt: "desc",
       },
@@ -211,6 +227,7 @@ export const GET = async (req: Request, res: Response) => {
         },
       },
     });
+
     return new NextResponse(JSON.stringify(memories), {
       status: 200,
     });
@@ -223,6 +240,175 @@ export const GET = async (req: Request, res: Response) => {
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
+
+export const PATCH = async (req: Request) => {
+  try {
+    const { searchParams } = new URL(req.url);
+    const memoryId = searchParams.get("memoryId");
+    const userId = searchParams.get("userId");
+
+    if (!memoryId) {
+      return new NextResponse(
+        JSON.stringify({ message: "Memory ID is required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!userId) {
+      return new NextResponse(
+        JSON.stringify({ message: "User ID is required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return new NextResponse(JSON.stringify({ message: "User not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const memory = await prisma.memories.findUnique({
+      where: { id: memoryId, userId: userId },
+    });
+
+    if (!memory) {
+      return new NextResponse(JSON.stringify({ message: "Memory not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const body = await req.json();
+
+    const updatedMemory = await prisma.memories.update({
+      where: { id: memoryId },
+      data: {
+        title: body.title || memory.title,
+        content: body.content || memory.content,
+        isPublic: body.isPublic ?? memory.isPublic,
+      },
+    });
+
+    return new NextResponse(JSON.stringify(updatedMemory), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error: any) {
+    return new NextResponse(
+      JSON.stringify({
+        message: "Error Updating Memory: " + error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+};
+
+export const DELETE = async (req: Request) => {
+  try {
+    const { searchParams } = new URL(req.url);
+    const memoryId = searchParams.get("memoryId");
+    const userId = searchParams.get("userId");
+
+    if (!memoryId) {
+      return new NextResponse(
+        JSON.stringify({ message: "Memory ID is required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!userId) {
+      return new NextResponse(
+        JSON.stringify({ message: "User ID is required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return new NextResponse(JSON.stringify({ message: "User not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const memory = await prisma.memories.findUnique({
+      where: { id: memoryId, userId: userId },
+    });
+
+    if (!memory) {
+      return new NextResponse(JSON.stringify({ message: "Memory not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const deleteMemory = await prisma.memories.delete({
+      where: { id: memoryId, userId: userId },
+    });
+
+    // Delete associated Cloudinary images
+    try {
+      if (
+        Array.isArray(deleteMemory.images) &&
+        deleteMemory.images.length > 0
+      ) {
+        const imagePublicIds = deleteMemory.images
+          .map((url: string) => {
+            const matches = url.match(/\/v\d+\/(.+)\.\w+$/);
+            return matches ? matches[1] : null;
+          })
+          .filter((id: string | null): id is string => id !== null);
+
+        if (imagePublicIds.length > 0) {
+          await cloudinary.api.delete_resources(imagePublicIds);
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting images from Cloudinary:", error);
+    }
+
+    return new NextResponse(
+      JSON.stringify({ message: "Memory deleted", deleteMemory }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error: any) {
+    return new NextResponse(
+      JSON.stringify({ message: "Error deleting memory: " + error.message }),
+      {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
     );
   }

@@ -7,45 +7,162 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id         String         @id @default(cuid())
-  name       String
-  email      String         @unique
-  phone      String         @unique
-  password   String
-  image      String?
-  role       Role           @default(USER)
-  memories   Memories[]
-  payments   Payments[]
-  createdAt  DateTime       @default(now())
-  memoryTypes Memory_types[]
-}
+// Enums
 enum Role {
   ADMIN
   USER
 }
 
+enum Status {
+  Pending
+  Paid
+  Cancelled
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  SHARE
+  MENTION
+  MEMORY_CREATED
+  BOOKMARK
+}
+
+// User Model
+model User {
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique
+  phone          String         @unique
+  password       String
+  image          String?
+  role           Role           @default(USER)
+  
+  // Relationships
+  memories       Memories[]
+  payments       Payments[]
+  memoryTypes    Memory_types[]
+  likes          Like[]
+  comments       Comment[]
+  shares         Share[]
+  bookmarks      Bookmark[]
+  notifications  Notification[]
+  
+  createdAt      DateTime       @default(now())
+}
+
+// Memory Type Model
 model Memory_types {
   id        String     @id @default(cuid())
   name      String     @unique
   createdAt DateTime   @default(now())
+  
+  // Relationships
   userId    String
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   memories  Memories[]
 }
 
+// Memories Model
 model Memories {
-  id            String        @id @default(cuid())
-  title         String
-  content       String
-  images        String?
-  createdAt     DateTime      @default(now())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  memoryTypeId  String
-  memoryType    Memory_types  @relation(fields: [memoryTypeId], references: [id], onDelete: Cascade)
+  id           String    @id @default(cuid())
+  title        String
+  content      String
+  images       String[]  @default([])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  // User Relations
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  
+  // Memory Type Relation
+  memoryTypeId String
+  memoryType   Memory_types @relation(fields: [memoryTypeId], references: [id])
+  
+  // Privacy and Visibility
+  isPublic     Boolean   @default(false)
+  
+  // Engagement Features
+  likes        Like[]
+  comments     Comment[]
+  shares       Share[]
+  bookmarks    Bookmark[]
+  
+  // Engagement Counters
+  likesCount     Int      @default(0)
+  commentsCount  Int      @default(0)
+  sharesCount    Int      @default(0)
 }
 
+
+// Like Model
+model Like {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  memoryId   String
+  memory     Memories @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  
+  // Ensure unique like per user per memory
+  @@unique([userId, memoryId])
+}
+
+// Comment Model
+model Comment {
+  id             String    @id @default(cuid())
+  content        String
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  memoryId       String
+  memory         Memories  @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  
+
+  parentCommentId String?
+  parentComment   Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies         Comment[] @relation("CommentReplies")
+}
+
+// Share Model
+model Share {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  memoryId   String
+  memory     Memories @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  platform   String?  // Track sharing platform
+  createdAt  DateTime @default(now())
+}
+
+// Bookmark Model
+model Bookmark {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  memoryId   String
+  memory     Memories  @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  
+  // Ensure unique bookmark per user per memory
+  @@unique([userId, memoryId])
+}
+
+// Notification Model
+model Notification {
+  id           String             @id @default(cuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id])
+  type         NotificationType
+  content      String
+  relatedId    String?            // ID of related entity
+  isRead       Boolean            @default(false)
+  createdAt    DateTime           @default(now())
+}
+
+// Payments Model
 model Payments {
   id                   String   @id @default(cuid())
   userId               String
@@ -57,10 +174,3 @@ model Payments {
   paymentMethodId      String
   status               Status
 }
-
-enum Status {
-  Pending
-  Paid
-  Cancelled
-}
-
